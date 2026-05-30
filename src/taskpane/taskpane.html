@@ -1,0 +1,64 @@
+<!-- Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT License. -->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FormulaTracker</title>
+
+    <!-- Office JavaScript API — required for all Excel add-ins -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+    <!-- Cytoscape.js — draws the dependency graph -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+
+    <link href="taskpane.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+
+    <!-- Shown until the add-in is sideloaded into Excel -->
+    <section id="sideload-msg" style="padding: 20px;">
+        <h2>Please <a target="_blank"
+            href="https://learn.microsoft.com/office/dev/add-ins/testing/test-debug-office-add-ins">sideload</a>
+            this add-in to see it in action.</h2>
+    </section>
+
+    <!-- Main content — hidden on load, shown by taskpane.js once Office.js is ready -->
+    <main id="app-body" style="display: none; padding: 12px; font-family: 'Segoe UI', sans-serif;">
+
+        <h2 style="margin: 0 0 12px 0; font-size: 16px; color: #333;">FormulaTracker</h2>
+
+        <!-- Shows which cell is currently being tracked -->
+        <p id="tracking-label" style="margin: 0 0 4px 0; font-size: 13px; color: #555;">
+            Select a cell and press Cmd+[ or Cmd+]
+        </p>
+
+        <!-- Shows the formula text of the tracked cell -->
+        <p id="formula-label" style="margin: 0 0 8px 0; font-size: 12px; color: #888; word-break: break-all;"></p>
+
+        <!-- Warning shown when the formula contains INDIRECT, OFFSET, or similar dynamic refs -->
+        <p id="warning-label" style="margin: 0 0 8px 0; font-size: 12px; color: #b8860b; display: none;"></p>
+
+        <!-- Fallback buttons — produce the same result as Cmd+[ and Cmd+] -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <button id="btn-precedents" style="flex: 1; padding: 6px; font-size: 13px; cursor: pointer;">
+                Show Precedents
+            </button>
+            <button id="btn-dependents" style="flex: 1; padding: 6px; font-size: 13px; cursor: pointer;">
+                Show Dependents
+            </button>
+        </div>
+
+        <!-- The dependency graph is drawn into this box by renderer.js -->
+        <div id="graph-container"
+            style="width: 100%; height: 420px; overflow: auto; border: 1px solid #ddd; border-radius: 4px; background: #fafafa;">
+        </div>
+
+    </main>
+
+</body>
+
+</html>

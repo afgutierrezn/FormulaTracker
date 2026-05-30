@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.office-addin-dev-certs/
+.claude/
+*.xlsx
+.DS_Store
+*.log

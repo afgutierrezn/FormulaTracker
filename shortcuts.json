@@ -1,0 +1,30 @@
+{
+  "actions": [
+    {
+      "id": "ShowPrecedents",
+      "type": "ExecuteFunction",
+      "name": "Show Precedents"
+    },
+    {
+      "id": "ShowDependents",
+      "type": "ExecuteFunction",
+      "name": "Show Dependents"
+    }
+  ],
+  "shortcuts": [
+    {
+      "action": "ShowPrecedents",
+      "key": {
+        "default": "Ctrl+Shift+[",
+        "mac": "Command+Shift+["
+      }
+    },
+    {
+      "action": "ShowDependents",
+      "key": {
+        "default": "Ctrl+Shift+]",
+        "mac": "Command+Shift+]"
+      }
+    }
+  ]
+}
