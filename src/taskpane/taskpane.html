@@ -3,61 +3,201 @@
 <html>
 
 <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>FormulaTracker</title>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FormulaTracker</title>
 
-    <!-- Office JavaScript API — required for all Excel add-ins -->
-    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <!-- Office JavaScript API — required for all Excel add-ins -->
+  <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 
-    <!-- Cytoscape.js — draws the dependency graph -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <link href="taskpane.css" rel="stylesheet" type="text/css" />
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 11px;
+      background: #fff;
+      color: #222;
+      min-width: 280px;
+    }
+
+    /* ---- Sideload message (shown until add-in is loaded into Excel) ---- */
+    #sideload-msg {
+      padding: 20px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    /* ---- Main layout ---- */
+    #app-body {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ---- Tab bar ---- */
+    #tab-bar {
+      display: flex;
+      border-bottom: 1px solid #d0d0d0;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border: none;
+      background: #f5f5f5;
+      color: #444;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: background 0.1s;
+    }
+
+    .tab-btn:hover { background: #ebebeb; }
+
+    .tab-btn.active {
+      background: #fff;
+      color: #0078d7;
+      border-bottom-color: #0078d7;
+      font-weight: 600;
+    }
+
+    /* ---- Warning bar (dependents mode) ---- */
+    #warning-bar {
+      display: none;
+      padding: 6px 10px;
+      background: #fff4ce;
+      color: #7a5a00;
+      border-bottom: 1px solid #e8d080;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    /* ---- Table container ---- */
+    #table-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* ---- Explorer table ---- */
+    .explorer-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .explorer-table colgroup col:nth-child(1) { width: 34%; }
+    .explorer-table colgroup col:nth-child(2) { width: 44%; }
+    .explorer-table colgroup col:nth-child(3) { width: 22%; }
+
+    .explorer-table thead tr {
+      background: #f0f0f0;
+      border-bottom: 1px solid #d0d0d0;
+    }
+
+    .explorer-table th {
+      padding: 5px 6px;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .explorer-table td {
+      padding: 4px 6px;
+      border-bottom: 1px solid #e8e8e8;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .explorer-table tr:hover:not(.active-row) { background: #f7f7f7; }
+
+    /* ---- Active cell row (row 1, always blue) ---- */
+    .explorer-table tr.active-row td {
+      background: #0078d7;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* ---- Selected row (clicked by the user) ---- */
+    .explorer-table tr.selected-row:not(.active-row) td {
+      background: #e5f1fb;
+    }
+
+    /* ---- Expand/collapse button ---- */
+    .expand-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 10px;
+      color: #0078d7;
+      padding: 0 4px 0 0;
+      font-family: inherit;
+      line-height: 1;
+    }
+
+    .expand-btn:hover { color: #005a9e; }
+
+    /* ---- Formula bar (precedents mode only) ---- */
+    #formula-bar {
+      display: none;
+      padding: 6px 8px;
+      border-top: 1px solid #d0d0d0;
+      background: #fafafa;
+      font-size: 11px;
+      color: #333;
+      word-break: break-all;
+      flex-shrink: 0;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    #formula-bar mark {
+      background: #ffe680;
+      color: #222;
+      border-radius: 2px;
+    }
+  </style>
 </head>
 
 <body>
 
-    <!-- Shown until the add-in is sideloaded into Excel -->
-    <section id="sideload-msg" style="padding: 20px;">
-        <h2>Please <a target="_blank"
-            href="https://learn.microsoft.com/office/dev/add-ins/testing/test-debug-office-add-ins">sideload</a>
-            this add-in to see it in action.</h2>
-    </section>
+  <!-- Shown until the add-in is sideloaded into Excel -->
+  <section id="sideload-msg">
+    <p>Please <a target="_blank"
+        href="https://learn.microsoft.com/office/dev/add-ins/testing/test-debug-office-add-ins">sideload</a>
+      this add-in to see it in action.</p>
+  </section>
 
-    <!-- Main content — hidden on load, shown by taskpane.js once Office.js is ready -->
-    <main id="app-body" style="display: none; padding: 12px; font-family: 'Segoe UI', sans-serif;">
+  <!-- Main content — hidden on load, shown once Office.js is ready -->
+  <main id="app-body">
 
-        <h2 style="margin: 0 0 12px 0; font-size: 16px; color: #333;">FormulaTracker</h2>
+    <!-- Tab buttons -->
+    <div id="tab-bar">
+      <button id="btn-precedents" class="tab-btn active">Explore Precedents</button>
+      <button id="btn-dependents" class="tab-btn">Explore Dependents</button>
+    </div>
 
-        <!-- Shows which cell is currently being tracked -->
-        <p id="tracking-label" style="margin: 0 0 4px 0; font-size: 13px; color: #555;">
-            Select a cell and press Cmd+[ or Cmd+]
-        </p>
+    <!-- Warning bar (shown in dependents mode when count > 50) -->
+    <div id="warning-bar"></div>
 
-        <!-- Shows the formula text of the tracked cell -->
-        <p id="formula-label" style="margin: 0 0 8px 0; font-size: 12px; color: #888; word-break: break-all;"></p>
+    <!-- Table is rendered here by renderer.js -->
+    <div id="table-container"></div>
 
-        <!-- Warning shown when the formula contains INDIRECT, OFFSET, or similar dynamic refs -->
-        <p id="warning-label" style="margin: 0 0 8px 0; font-size: 12px; color: #b8860b; display: none;"></p>
+    <!-- Formula bar at the bottom (shown in precedents mode only) -->
+    <div id="formula-bar">
+      <span id="formula-text"></span>
+    </div>
 
-        <!-- Fallback buttons — produce the same result as Cmd+[ and Cmd+] -->
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <button id="btn-precedents" style="flex: 1; padding: 6px; font-size: 13px; cursor: pointer;">
-                Show Precedents
-            </button>
-            <button id="btn-dependents" style="flex: 1; padding: 6px; font-size: 13px; cursor: pointer;">
-                Show Dependents
-            </button>
-        </div>
-
-        <!-- The dependency graph is drawn into this box by renderer.js -->
-        <div id="graph-container"
-            style="width: 100%; height: 420px; overflow: auto; border: 1px solid #ddd; border-radius: 4px; background: #fafafa;">
-        </div>
-
-    </main>
+  </main>
 
 </body>
 
