@@ -1,5 +1,8 @@
 /* global document, Excel */
 
+// Guard: only attach the keyboard listener once per page load.
+let _navAttached = false;
+
 // Draws the Explore Precedents table and formula bar.
 // enrichedData has:
 //   activeAddress — the cell being explored, e.g. "Sheet1!A1"
@@ -36,6 +39,7 @@ export function renderPrecedents(enrichedData) {
   }
 
   document.getElementById("table-container").appendChild(table);
+  attachKeyboardNav();
 }
 
 // Draws the Explore Dependents table.
@@ -88,6 +92,7 @@ export function renderDependents(activeAddress, rows) {
   }
 
   document.getElementById("table-container").appendChild(table);
+  attachKeyboardNav();
 }
 
 // Shows a plain error message, replacing whatever is in the table area.
@@ -381,6 +386,70 @@ function esc(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+// Attaches arrow-key navigation to the table. Called once per page load.
+// Up/Down move between visible rows and trigger the same action as clicking.
+// Right expands a collapsed function row; Left collapses an expanded one (or
+// jumps to the parent row and collapses it).
+function attachKeyboardNav() {
+  if (_navAttached) return;
+  _navAttached = true;
+
+  document.addEventListener("keydown", (e) => {
+    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+
+    const tbody = document.querySelector("#table-container tbody");
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll("tr")).filter(
+      (r) => r.style.display !== "none"
+    );
+    if (rows.length === 0) return;
+
+    e.preventDefault();
+
+    // Prefer an explicitly selected row over the always-present active-row (row 1).
+    const currentRow =
+      rows.find((r) => r.classList.contains("selected-row")) ||
+      rows.find((r) => r.classList.contains("active-row"));
+    const idx = currentRow ? rows.indexOf(currentRow) : -1;
+
+    if (e.key === "ArrowDown") {
+      const next = rows[Math.min(idx + 1, rows.length - 1)];
+      next.click();
+      next.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp") {
+      const prev = rows[Math.max(idx - 1, 0)];
+      prev.click();
+      prev.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowRight") {
+      const row = rows[idx];
+      if (!row) return;
+      const btn = row.querySelector(".expand-btn");
+      if (btn && btn.textContent.trim() === "▶") btn.click();
+    } else if (e.key === "ArrowLeft") {
+      const row = rows[idx];
+      if (!row) return;
+      const btn = row.querySelector(".expand-btn");
+      if (btn && btn.textContent.trim() === "▼") {
+        btn.click();
+      } else {
+        // Child row: jump to parent function row and collapse it
+        const path = row.getAttribute("data-path");
+        if (path && path.includes(".")) {
+          const parentPath = path.slice(0, path.lastIndexOf("."));
+          const parentRow = tbody.querySelector(`tr[data-path="${parentPath}"]`);
+          if (parentRow) {
+            const parentBtn = parentRow.querySelector(".expand-btn");
+            if (parentBtn && parentBtn.textContent.trim() === "▼") parentBtn.click();
+            parentRow.click();
+            parentRow.scrollIntoView({ block: "nearest" });
+          }
+        }
+      }
+    }
+  });
 }
 
 // Local copy of splitAddress so renderer.js doesn't import graph.js (avoids circular deps).

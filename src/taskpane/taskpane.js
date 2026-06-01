@@ -8,6 +8,7 @@ import { renderPrecedents, renderDependents, renderError } from "./renderer.js";
 // When Office.js is ready, show the main UI and wire up the tab buttons.
 Office.onReady((info) => {
   if (info.host === Office.HostType.Excel) {
+
     document.getElementById("sideload-msg").style.display = "none";
     document.getElementById("app-body").style.display = "flex";
 
@@ -21,6 +22,17 @@ Office.onReady((info) => {
     btnD.addEventListener("click", () => {
       setActiveTab("dependents");
       runMode("dependents");
+    });
+
+    // Esc clears the row selection and resets the formula bar highlight.
+    // (Office.addin.hide() requires SharedRuntime which is not active on this Excel version.)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        document.querySelectorAll("tr.selected-row").forEach((r) => r.classList.remove("selected-row"));
+        const formulaText = document.getElementById("formula-text");
+        if (formulaText) formulaText.innerHTML = formulaText.textContent; // strip <mark> highlight
+      }
     });
 
     // If a keyboard shortcut fired before the task pane was open,
