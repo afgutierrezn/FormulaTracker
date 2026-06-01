@@ -4,6 +4,11 @@ Office.onReady(() => {
   // Office.js is ready in the shared runtime.
 });
 
+// Associate actions outside onReady so they register synchronously at script load,
+// before Office.js completes async initialisation.
+Office.actions.associate("ShowPrecedents", showPrecedentsAction);
+Office.actions.associate("ShowDependents", showDependentsAction);
+
 // Called when the user presses Cmd+[ (Mac) or Ctrl+[ (Windows).
 // Shows the precedents of the selected cell.
 async function showPrecedentsAction(event) {
@@ -30,6 +35,3 @@ async function showDependentsAction(event) {
   event.completed();
 }
 
-// Register both handlers with Office so the shortcuts.json actions can trigger them.
-Office.actions.associate("ShowPrecedents", showPrecedentsAction);
-Office.actions.associate("ShowDependents", showDependentsAction);

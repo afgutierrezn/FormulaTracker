@@ -15,15 +15,13 @@
     {
       "action": "ShowPrecedents",
       "key": {
-        "default": "Ctrl+Shift+[",
-        "mac": "Command+Shift+["
+        "default": "Ctrl+Shift+J"
       }
     },
     {
       "action": "ShowDependents",
       "key": {
-        "default": "Ctrl+Shift+]",
-        "mac": "Command+Shift+]"
+        "default": "Ctrl+Shift+Y"
       }
     }
   ]

@@ -5,12 +5,32 @@ import { buildAllFunctionResults } from "./fn-evaluator.js";
 import { getPrecedentCell, getDependentsRows, expandRange, splitAddress, normalizeAddress } from "./graph.js";
 import { renderPrecedents, renderDependents, renderError } from "./renderer.js";
 
+// Register keyboard shortcut actions at module load time (outside onReady) so they
+// are available as soon as the shared runtime starts — before any user interaction.
+// setActiveTab and runMode are function declarations (hoisted), so they are safe to
+// reference here even though they appear later in the file.
+Office.actions.associate("ShowPrecedents", async (event) => {
+  await Office.addin.showAsTaskpane();
+  setActiveTab("precedents");
+  runMode("precedents");
+  event.completed();
+});
+Office.actions.associate("ShowDependents", async (event) => {
+  await Office.addin.showAsTaskpane();
+  setActiveTab("dependents");
+  runMode("dependents");
+  event.completed();
+});
+
 // When Office.js is ready, show the main UI and wire up the tab buttons.
 Office.onReady((info) => {
   if (info.host === Office.HostType.Excel) {
+    // Register this pane so Office.addin.hide() (Esc) can close it.
+    Office.addin.showAsTaskpane().catch(() => {});
 
     document.getElementById("sideload-msg").style.display = "none";
     document.getElementById("app-body").style.display = "flex";
+
 
     const btnP = document.getElementById("btn-precedents");
     const btnD = document.getElementById("btn-dependents");
@@ -24,14 +44,16 @@ Office.onReady((info) => {
       runMode("dependents");
     });
 
-    // Esc clears the row selection and resets the formula bar highlight.
-    // (Office.addin.hide() requires SharedRuntime which is not active on this Excel version.)
+    // Esc hides the task pane and returns focus to Excel.
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        document.querySelectorAll("tr.selected-row").forEach((r) => r.classList.remove("selected-row"));
-        const formulaText = document.getElementById("formula-text");
-        if (formulaText) formulaText.innerHTML = formulaText.textContent; // strip <mark> highlight
+        Office.addin.hide().catch(() => {
+          // If hide() fails, fall back to clearing the selection.
+          document.querySelectorAll("tr.selected-row").forEach((r) => r.classList.remove("selected-row"));
+          const formulaText = document.getElementById("formula-text");
+          if (formulaText) formulaText.innerHTML = formulaText.textContent;
+        });
       }
     });
 
