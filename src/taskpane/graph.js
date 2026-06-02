@@ -66,6 +66,26 @@ export async function getDependentsRows(addressList, context) {
     }
   }
 
+  // Scan every other sheet for cross-sheet dependents.
+  // Needed for hardcoded-value cells where getDirectDependents() is unreliable on Mac.
+  const allSheets = context.workbook.worksheets;
+  allSheets.load("items/name");
+  await context.sync();
+
+  for (const ws of allSheets.items) {
+    for (const address of addressList) {
+      const { sheet: sourceSheet } = splitAddress(address);
+      if (ws.name === sourceSheet) continue; // already scanned above
+      try {
+        const crossSheet = await scanForDependents(address, ws.name, context);
+        crossSheet.forEach((a) => {
+          allDeps.add(a);
+          scanDeps.add(a);
+        });
+      } catch (_) {}
+    }
+  }
+
   if (allDeps.size === 0) return [];
 
   // Step 2: batch-load the formula for every unique dependent cell.

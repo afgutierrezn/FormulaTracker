@@ -27,7 +27,7 @@ export function renderPrecedents(enrichedData) {
     depth: 0,
     isActive: true,
     path: "", // root row has no path
-    token: null,
+    token: { type: "cell_ref", address: activeAddress },
     formula: formula,
   });
 
@@ -67,7 +67,7 @@ export function renderDependents(activeAddress, rows) {
     depth: 0,
     isActive: true,
     path: "",
-    token: null,
+    token: { type: "cell_ref", address: activeAddress },
     formula: null,
   });
 
@@ -276,14 +276,20 @@ function toggleExpand(fnPath, btn, tbody) {
 }
 
 // Opens a new Excel.run() to navigate to the given cell address.
-// Cross-sheet navigation activates the sheet first, then selects the cell.
+// Skips activate() when the target sheet is already active — on Mac, activating the
+// current sheet cancels the subsequent select().
 async function navigateTo(address) {
   try {
     await Excel.run(async (ctx) => {
       const { sheet, cell } = splitAddressLocal(address);
-      const worksheet = ctx.workbook.worksheets.getItem(sheet);
-      worksheet.activate();
-      worksheet.getRange(cell).select();
+      const activeSheet = ctx.workbook.worksheets.getActiveWorksheet();
+      activeSheet.load("name");
+      await ctx.sync();
+      if (activeSheet.name !== sheet) {
+        ctx.workbook.worksheets.getItem(sheet).activate();
+        await ctx.sync();
+      }
+      ctx.workbook.worksheets.getItem(sheet).getRange(cell).select();
       await ctx.sync();
     });
   } catch (e) {
