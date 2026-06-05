@@ -2,6 +2,8 @@
 
 // Guard: only attach the keyboard listener once per page load.
 let _navAttached = false;
+// Sheet of the cell currently being explored — used by navigateTo for unqualified addresses.
+let _homeSheet = null;
 
 // Draws the Explore Precedents table and formula bar.
 // enrichedData has:
@@ -11,6 +13,7 @@ let _navAttached = false;
 //   tokens        — token tree from formula-parser.js, enriched with cellValue / computedValue
 export function renderPrecedents(enrichedData) {
   const { activeAddress, formula, value, tokens } = enrichedData;
+  _homeSheet = splitAddressLocal(activeAddress).sheet;
 
   clearAll();
   document.getElementById("formula-bar").style.display = "block";
@@ -46,6 +49,7 @@ export function renderPrecedents(enrichedData) {
 // activeAddress — the source cell (or label for multi-cell selection)
 // rows — [{ address, sheet, count }] from getDependentsRows()
 export function renderDependents(activeAddress, rows) {
+  _homeSheet = splitAddressLocal(activeAddress).sheet;
   clearAll();
   document.getElementById("formula-bar").style.display = "none";
 
@@ -281,10 +285,16 @@ function toggleExpand(fnPath, btn, tbody) {
 async function navigateTo(address) {
   try {
     await Excel.run(async (ctx) => {
-      const { sheet, cell } = splitAddressLocal(address);
       const activeSheet = ctx.workbook.worksheets.getActiveWorksheet();
       activeSheet.load("name");
       await ctx.sync();
+
+      // If address has no sheet prefix (e.g. "B1"), use the active sheet name
+      // rather than falling back to the hardcoded "Sheet1" default.
+      const hasSheet = address.includes("!");
+      const sheet = hasSheet ? splitAddressLocal(address).sheet : (_homeSheet || activeSheet.name);
+      const cell = hasSheet ? splitAddressLocal(address).cell : address;
+
       if (activeSheet.name !== sheet) {
         ctx.workbook.worksheets.getItem(sheet).activate();
         await ctx.sync();

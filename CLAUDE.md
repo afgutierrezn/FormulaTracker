@@ -123,6 +123,12 @@ For new functions: confirm the expected inputs and outputs before writing.
   available on older Excel for Mac versions.
 - Always check for API support before calling these. If unsupported,
   fall back to the regex-based formula parser in `fallback-parser.js`.
+- `getDirectDependents()` is also unreliable for hardcoded-value cells
+  (cells with no formula) even when the API is present — the text-scan
+  fallback in `graph.js` is the authoritative source for those.
+- Calling `worksheet.activate()` on the already-active sheet cancels
+  any subsequent `range.select()` in the same sync batch. Always check
+  the active sheet name and skip `activate()` if already on that sheet.
 - Do not assume Windows behaviour applies on Mac.
 
 ## 6. Scope boundary

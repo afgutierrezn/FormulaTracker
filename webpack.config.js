@@ -39,7 +39,10 @@ module.exports = async (env, options) => {
         {
           test: /\.html$/,
           exclude: /node_modules/,
-          use: "html-loader",
+          use: {
+            loader: "html-loader",
+            options: { sources: false },
+          },
         },
         {
           test: /\.(png|jpg|jpeg|gif|ico)$/,
@@ -88,6 +91,9 @@ module.exports = async (env, options) => {
     devServer: {
       headers: {
         "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
       },
       server: {
         type: "https",

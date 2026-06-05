@@ -202,11 +202,12 @@ export function splitAddress(address) {
   };
 }
 
-// Ensures an address always includes a sheet name.
-// "A1" → "Sheet1!A1".  "Sheet2!B3" → "Sheet2!B3".  "'My Sheet'!C4" → "My Sheet!C4".
+// Ensures an address always includes a sheet name, and strips $ markers.
+// "A1" → "Sheet1!A1".  "Sheet2!$B$3" → "Sheet2!B3".  "'My Sheet'!C4" → "My Sheet!C4".
 export function normalizeAddress(address, defaultSheet) {
-  if (!address.includes("!")) return defaultSheet + "!" + address;
-  return address.replace(/^'(.*)'!/, "$1!");
+  const clean = address.replace(/\$/g, "");
+  if (!clean.includes("!")) return defaultSheet + "!" + clean;
+  return clean.replace(/^'(.*)'!/, "$1!");
 }
 
 // Converts a zero-based column index to a letter. 0 → "A", 25 → "Z", 26 → "AA".
